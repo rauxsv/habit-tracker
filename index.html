@@ -1,68 +1,587 @@
-<h2>Habit tracker</h2>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Habit Tracker</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
 
-<input id="habitName" placeholder="Новая привычка">
-<button onclick="addHabit()">Добавить</button>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-<h3>Сегодня</h3>
-<div id="list"></div>
-
-<script>
-let habits = JSON.parse(localStorage.getItem("habits") || "[]");
-
-function save() {
-  localStorage.setItem("habits", JSON.stringify(habits));
-}
-
-function addHabit() {
-  const input = document.getElementById("habitName");
-  const name = input.value.trim();
-
-  if (!name) return;
-
-  habits.push({
-    name: name,
-    done: false
-  });
-
-  input.value = "";
-  save();
-  render();
-}
-
-function toggleHabit(index) {
-  habits[index].done = !habits[index].done;
-  save();
-  render();
-}
-
-function deleteHabit(index) {
-  habits.splice(index, 1);
-  save();
-  render();
-}
-
-function render() {
-  const list = document.getElementById("list");
-
-  if (habits.length === 0) {
-    list.innerHTML = "<p>Пока нет привычек</p>";
-    return;
+  :root {
+    --bg: #f7f6f3;
+    --surface: #ffffff;
+    --border: #e8e5df;
+    --border2: #d4d0c8;
+    --text: #1a1916;
+    --muted: #8a8880;
+    --accent: #2d6a4f;
+    --accent-light: #d8f3e8;
+    --red: #c0392b;
+    --red-light: #fdecea;
+    --blue: #1a56a0;
+    --blue-light: #e8f0fd;
+    --radius: 10px;
+    --radius-sm: 6px;
   }
 
-  list.innerHTML = habits.map((habit, index) => `
-    <div style="margin: 10px 0;">
-      <input 
-        type="checkbox" 
-        ${habit.done ? "checked" : ""} 
-        onchange="toggleHabit(${index})"
-      >
-      <span style="${habit.done ? 'text-decoration: line-through;' : ''}">
-        ${habit.name}
-      </span>
-      <button onclick="deleteHabit(${index})">Удалить</button>
-    </div>
-  `).join("");
-}
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    min-height: 100vh;
+  }
 
-render();
+  /* TABS */
+  .tabs-bar {
+    display: flex;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 16px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .tab-btn {
+    padding: 14px 18px;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .tab-btn.active {
+    color: var(--text);
+    border-bottom-color: var(--text);
+  }
+  .tab-btn:hover:not(.active) { color: var(--text); }
+
+  /* PAGES */
+  .page { display: none; padding: 20px 16px 40px; max-width: 720px; margin: 0 auto; }
+  .page.active { display: block; }
+
+  /* CARDS */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+
+  /* FORM */
+  .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+  .field { margin-bottom: 12px; }
+  .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 5px; }
+  input[type=text], input[type=number], input[type=time], select, textarea {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-sm);
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--text);
+    background: var(--surface);
+    transition: border 0.15s;
+  }
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  /* BUTTONS */
+  .btn {
+    padding: 9px 16px;
+    border: 1px solid var(--border2);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn:hover { background: var(--bg); }
+  .btn:active { transform: scale(0.98); }
+  .btn-primary {
+    background: var(--text);
+    color: var(--surface);
+    border-color: var(--text);
+  }
+  .btn-primary:hover { opacity: 0.85; background: var(--text); }
+  .btn-danger { color: var(--red); border-color: transparent; }
+  .btn-danger:hover { background: var(--red-light); }
+  .btn-icon { padding: 7px 10px; }
+
+  /* HABIT LIST */
+  .habit-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    margin-bottom: 8px;
+  }
+  .habit-emoji { font-size: 20px; flex-shrink: 0; }
+  .habit-info { flex: 1; min-width: 0; }
+  .habit-name { font-weight: 500; font-size: 14px; }
+  .habit-badge {
+    display: inline-block;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    background: var(--blue-light);
+    color: var(--blue);
+    margin-top: 3px;
+  }
+
+  /* TODAY */
+  .day-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  .day-nav .day-title {
+    flex: 1;
+    text-align: center;
+    font-size: 16px;
+    font-weight: 600;
+  }
+  .track-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    margin-bottom: 8px;
+    transition: border-color 0.15s;
+  }
+  .track-item:has(input:focus) { border-color: var(--border2); }
+  .track-emoji { font-size: 20px; flex-shrink: 0; }
+  .track-name { flex: 1; font-weight: 500; font-size: 14px; }
+  .track-control { flex-shrink: 0; }
+  .track-control input[type=text],
+  .track-control input[type=number],
+  .track-control input[type=time] {
+    width: 130px;
+    padding: 7px 10px;
+    font-size: 14px;
+  }
+  .duration-wrap { display: flex; align-items: center; gap: 6px; }
+  .duration-wrap input { width: 90px; }
+  .duration-wrap span { font-size: 12px; color: var(--muted); }
+
+  /* CHECKBOX */
+  .check-box {
+    width: 30px;
+    height: 30px;
+    border: 1.5px solid var(--border2);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    transition: all 0.15s;
+    background: var(--surface);
+    user-select: none;
+  }
+  .check-box.on {
+    background: var(--accent-light);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* SAVE BUTTON ROW */
+  .save-row { margin-top: 16px; text-align: right; }
+
+  /* HISTORY */
+  .history-habit { margin-bottom: 20px; }
+  .history-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .history-emoji { font-size: 18px; }
+  .history-name { font-weight: 500; font-size: 14px; }
+  .history-type { font-size: 12px; color: var(--muted); margin-left: auto; }
+  .dots-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+  .dot {
+    width: 34px;
+    height: 34px;
+    border-radius: 7px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    font-weight: 500;
+    border: 1px solid transparent;
+    cursor: default;
+    line-height: 1.2;
+  }
+  .dot-day { font-size: 8px; opacity: 0.65; }
+  .dot-val { font-size: 9px; font-weight: 600; }
+  .dot-empty { background: var(--bg); border-color: var(--border); color: var(--muted); }
+  .dot-green { background: var(--accent-light); border-color: #a8dbc4; color: var(--accent); }
+  .dot-red { background: var(--red-light); border-color: #f5bab5; color: var(--red); }
+  .dot-blue { background: var(--blue-light); border-color: #b5cff5; color: var(--blue); }
+
+  /* EMPTY STATE */
+  .empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--muted);
+    font-size: 14px;
+  }
+  .empty-icon { font-size: 36px; margin-bottom: 12px; }
+
+  /* DIVIDER */
+  .divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(60px);
+    background: var(--text);
+    color: var(--surface);
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    transition: transform 0.25s ease;
+    z-index: 100;
+    pointer-events: none;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  @media (max-width: 480px) {
+    .form-grid { grid-template-columns: 1fr; }
+    .track-control input { width: 110px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="tabs-bar">
+  <button class="tab-btn active" onclick="showPage('habits')">✦ Привычки</button>
+  <button class="tab-btn" onclick="showPage('today')">◎ Сегодня</button>
+  <button class="tab-btn" onclick="showPage('history')">◈ История</button>
+</div>
+
+<!-- HABITS PAGE -->
+<div id="page-habits" class="page active">
+  <div class="card">
+    <div class="section-label">Новая привычка</div>
+    <div class="field">
+      <label>Название</label>
+      <input type="text" id="new-name" placeholder="Например: проснуться, шаги, учёба...">
+    </div>
+    <div class="form-grid">
+      <div class="field">
+        <label>Тип отметки</label>
+        <select id="new-type">
+          <option value="checkbox">✓ Чекбокс (да / нет)</option>
+          <option value="time">⏰ Время (во сколько)</option>
+          <option value="number">🔢 Количество (число)</option>
+          <option value="duration">⏱ Продолжительность (мин)</option>
+          <option value="text">📝 Текст / заметка</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Эмодзи</label>
+        <input type="text" id="new-emoji" placeholder="🌅 💪 📚 🪥 💧">
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="addHabit()">+ Добавить</button>
+  </div>
+
+  <hr class="divider">
+  <div class="section-label">Мои привычки</div>
+  <div id="habits-list"></div>
+</div>
+
+<!-- TODAY PAGE -->
+<div id="page-today" class="page">
+  <div class="day-nav">
+    <button class="btn btn-icon" onclick="changeDay(-1)">←</button>
+    <div class="day-title" id="day-title"></div>
+    <button class="btn btn-icon" id="btn-next" onclick="changeDay(1)">→</button>
+  </div>
+  <div id="track-list"></div>
+  <div class="save-row">
+    <button class="btn btn-primary" onclick="saveDay()">Сохранить</button>
+  </div>
+</div>
+
+<!-- HISTORY PAGE -->
+<div id="page-history" class="page">
+  <div class="section-label">Последние 14 дней</div>
+  <div id="history-list"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const KEY_HABITS = 'ht2_habits';
+  const KEY_LOGS   = 'ht2_logs';
+
+  let habits = load(KEY_HABITS, []);
+  let logs   = load(KEY_LOGS, {});
+  let currentDay = today();
+
+  // seed defaults if empty
+  if (!habits.length) {
+    habits = [
+      { id: 'h1', name: 'Проснуться', type: 'time',     emoji: '🌅' },
+      { id: 'h2', name: 'Шаги',       type: 'number',   emoji: '👣' },
+      { id: 'h3', name: 'Учёба',      type: 'duration', emoji: '📚' },
+      { id: 'h4', name: 'Умыться',    type: 'checkbox', emoji: '🪥' },
+    ];
+    persist();
+  }
+
+  // ── helpers ──────────────────────────────────────────────────
+  function load(key, def) {
+    try { return JSON.parse(localStorage.getItem(key)) || def; } catch { return def; }
+  }
+  function persist() {
+    localStorage.setItem(KEY_HABITS, JSON.stringify(habits));
+    localStorage.setItem(KEY_LOGS,   JSON.stringify(logs));
+  }
+  function today() {
+    return new Date().toISOString().slice(0,10);
+  }
+  function shiftDay(str, n) {
+    const d = new Date(str + 'T00:00:00');
+    d.setDate(d.getDate() + n);
+    return d.toISOString().slice(0,10);
+  }
+  function formatDay(str) {
+    const d = new Date(str + 'T00:00:00');
+    const t = today();
+    const y = shiftDay(t, -1);
+    const DAYS = ['вс','пн','вт','ср','чт','пт','сб'];
+    const MONTHS = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+    if (str === t) return 'Сегодня, ' + d.getDate() + ' ' + MONTHS[d.getMonth()];
+    if (str === y) return 'Вчера, '   + d.getDate() + ' ' + MONTHS[d.getMonth()];
+    return DAYS[d.getDay()] + ' ' + d.getDate() + ' ' + MONTHS[d.getMonth()];
+  }
+  function shortDay(str) {
+    const d = new Date(str + 'T00:00:00');
+    const MONTHS = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+    return d.getDate() + '\n' + MONTHS[d.getMonth()].slice(0,3);
+  }
+  function typeLabel(t) {
+    return { checkbox:'Чекбокс', time:'Время', number:'Количество', duration:'Длительность', text:'Текст' }[t] || t;
+  }
+  function uid() { return 'h' + Date.now(); }
+  function toast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 1800);
+  }
+
+  // ── pages ────────────────────────────────────────────────────
+  function showPage(p) {
+    document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    document.getElementById('page-' + p).classList.add('active');
+    const idx = ['habits','today','history'].indexOf(p);
+    document.querySelectorAll('.tab-btn')[idx].classList.add('active');
+    if (p === 'today')   renderToday();
+    if (p === 'history') renderHistory();
+  }
+
+  // ── HABITS ───────────────────────────────────────────────────
+  function addHabit() {
+    const name  = document.getElementById('new-name').value.trim();
+    const type  = document.getElementById('new-type').value;
+    const emoji = document.getElementById('new-emoji').value.trim() || '⭐';
+    if (!name) { document.getElementById('new-name').focus(); return; }
+    habits.push({ id: uid(), name, type, emoji });
+    document.getElementById('new-name').value  = '';
+    document.getElementById('new-emoji').value = '';
+    persist();
+    renderHabits();
+    toast('Привычка добавлена');
+  }
+
+  function removeHabit(id) {
+    habits = habits.filter(h => h.id !== id);
+    persist();
+    renderHabits();
+    renderToday();
+  }
+
+  function renderHabits() {
+    const el = document.getElementById('habits-list');
+    if (!habits.length) {
+      el.innerHTML = `<div class="empty"><div class="empty-icon">🌱</div>Добавь первую привычку выше</div>`;
+      return;
+    }
+    el.innerHTML = habits.map(h => `
+      <div class="habit-item">
+        <span class="habit-emoji">${h.emoji}</span>
+        <div class="habit-info">
+          <div class="habit-name">${h.name}</div>
+          <span class="habit-badge">${typeLabel(h.type)}</span>
+        </div>
+        <button class="btn btn-danger btn-icon" onclick="removeHabit('${h.id}')" title="Удалить">✕</button>
+      </div>
+    `).join('');
+  }
+
+  // ── TODAY ────────────────────────────────────────────────────
+  function changeDay(n) {
+    const next = shiftDay(currentDay, n);
+    if (next > today()) return;
+    currentDay = next;
+    renderToday();
+  }
+
+  function getLog(day) { return logs[day] || {}; }
+
+  function setVal(id, val) {
+    if (!logs[currentDay]) logs[currentDay] = {};
+    logs[currentDay][id] = val;
+    persist();
+  }
+
+  function toggleCheck(id) {
+    const cur = getLog(currentDay)[id];
+    setVal(id, !cur);
+    const el = document.getElementById('cb-' + id);
+    const on = logs[currentDay][id];
+    el.className = 'check-box' + (on ? ' on' : '');
+    el.textContent = on ? '✓' : '';
+  }
+
+  function renderToday() {
+    document.getElementById('day-title').textContent = formatDay(currentDay);
+    document.getElementById('btn-next').disabled = currentDay === today();
+    const log = getLog(currentDay);
+    const el  = document.getElementById('track-list');
+    if (!habits.length) {
+      el.innerHTML = `<div class="empty"><div class="empty-icon">📋</div>Сначала добавь привычки</div>`;
+      return;
+    }
+    el.innerHTML = habits.map(h => {
+      const val = log[h.id];
+      let ctrl = '';
+      if (h.type === 'checkbox') {
+        const on = val === true;
+        ctrl = `<div class="check-box${on?' on':''}" id="cb-${h.id}" onclick="toggleCheck('${h.id}')">${on?'✓':''}</div>`;
+      } else if (h.type === 'time') {
+        ctrl = `<input type="time" value="${val||''}" onchange="setVal('${h.id}',this.value)">`;
+      } else if (h.type === 'number') {
+        ctrl = `<input type="number" placeholder="0" value="${val!==undefined?val:''}" min="0" oninput="setVal('${h.id}',parseFloat(this.value)||0)">`;
+      } else if (h.type === 'duration') {
+        ctrl = `<div class="duration-wrap"><input type="number" placeholder="0" min="0" value="${val!==undefined?val:''}" oninput="setVal('${h.id}',parseFloat(this.value)||0)"><span>мин</span></div>`;
+      } else if (h.type === 'text') {
+        ctrl = `<input type="text" placeholder="заметка" value="${val||''}" oninput="setVal('${h.id}',this.value)" style="width:150px">`;
+      }
+      return `
+        <div class="track-item">
+          <span class="track-emoji">${h.emoji}</span>
+          <span class="track-name">${h.name}</span>
+          <div class="track-control">${ctrl}</div>
+        </div>`;
+    }).join('');
+  }
+
+  function saveDay() {
+    persist();
+    toast('Сохранено ✓');
+  }
+
+  // ── HISTORY ──────────────────────────────────────────────────
+  function last14() {
+    const days = [];
+    for (let i = 13; i >= 0; i--) days.push(shiftDay(today(), -i));
+    return days;
+  }
+
+  function renderHistory() {
+    const el   = document.getElementById('history-list');
+    const days = last14();
+    if (!habits.length) {
+      el.innerHTML = `<div class="empty"><div class="empty-icon">📊</div>Нет привычек для отображения</div>`;
+      return;
+    }
+    el.innerHTML = habits.map(h => {
+      const dots = days.map(day => {
+        const log = getLog(day);
+        const val = log[h.id];
+        const d   = new Date(day + 'T00:00:00');
+        const lbl = d.getDate() + '<br><span class="dot-day">' + ['вс','пн','вт','ср','чт','пт','сб'][d.getDay()] + '</span>';
+
+        if (h.type === 'checkbox') {
+          if (val === true)  return `<div class="dot dot-green" title="${day}">✓<br>${lbl}</div>`;
+          const logged = logs[day] !== undefined;
+          if (logged || day < today())
+            return `<div class="dot dot-red" title="${day}">✗<br>${lbl}</div>`;
+          return `<div class="dot dot-empty" title="${day}">${lbl}</div>`;
+        }
+
+        if (val === undefined || val === null || val === '') {
+          return `<div class="dot dot-empty" title="${day}">${lbl}</div>`;
+        }
+        if (h.type === 'number' || h.type === 'duration') {
+          const n = typeof val === 'number' ? val : parseFloat(val);
+          const disp = isNaN(n) ? '?' : (n >= 1000 ? Math.round(n/100)/10+'к' : n);
+          return `<div class="dot dot-blue" title="${day}: ${val}"><span class="dot-val">${disp}</span><br>${lbl}</div>`;
+        }
+        if (h.type === 'time') {
+          return `<div class="dot dot-blue" title="${day}: ${val}"><span class="dot-val" style="font-size:8px">${val}</span><br>${lbl}</div>`;
+        }
+        return `<div class="dot dot-green" title="${day}: ${val}">✓<br>${lbl}</div>`;
+      }).join('');
+
+      return `
+        <div class="history-habit">
+          <div class="history-header">
+            <span class="history-emoji">${h.emoji}</span>
+            <span class="history-name">${h.name}</span>
+            <span class="history-type">${typeLabel(h.type)}</span>
+          </div>
+          <div class="dots-grid">${dots}</div>
+        </div>`;
+    }).join('<hr class="divider">');
+  }
+
+  // ── INIT ─────────────────────────────────────────────────────
+  renderHabits();
+  renderToday();
 </script>
+</body>
+</html>
