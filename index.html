@@ -1,644 +1,325 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Habit Tracker</title>
+
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
-
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-  :root {
-    --bg: #f7f6f3;
-    --surface: #ffffff;
-    --border: #e8e5df;
-    --border2: #d4d0c8;
-    --text: #1a1916;
-    --muted: #8a8880;
-    --accent: #2d6a4f;
-    --accent-light: #d8f3e8;
-    --red: #c0392b;
-    --red-light: #fdecea;
-    --blue: #1a56a0;
-    --blue-light: #e8f0fd;
-    --radius: 10px;
-    --radius-sm: 6px;
-  }
-
-  body {
-    font-family: 'Inter', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    font-size: 14px;
-    min-height: 100vh;
-  }
-
-  .tabs-bar {
-    display: flex;
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    padding: 0 16px;
-    position: sticky;
-    top: 0;
-    z-index: 10;
-  }
-  .tab-btn {
-    padding: 14px 18px;
-    background: none;
-    border: none;
-    border-bottom: 2px solid transparent;
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--muted);
-    cursor: pointer;
-    transition: all 0.15s;
-    white-space: nowrap;
-  }
-  .tab-btn.active { color: var(--text); border-bottom-color: var(--text); }
-  .tab-btn:hover:not(.active) { color: var(--text); }
-
-  .page { display: none; padding: 20px 16px 40px; max-width: 720px; margin: 0 auto; }
-  .page.active { display: block; }
-
-  .card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 16px;
-    margin-bottom: 12px;
-  }
-
-  .section-label {
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.07em;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: 12px;
-  }
-  .field { margin-bottom: 12px; }
-  .field label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 5px; }
-  input[type=text], input[type=number], input[type=time], select, textarea {
-    width: 100%;
-    padding: 9px 12px;
-    border: 1px solid var(--border2);
-    border-radius: var(--radius-sm);
-    font-family: inherit;
-    font-size: 14px;
-    color: var(--text);
-    background: var(--surface);
-    transition: border 0.15s;
-  }
-  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); }
-  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-
-  .btn {
-    padding: 9px 16px;
-    border: 1px solid var(--border2);
-    border-radius: var(--radius-sm);
-    background: var(--surface);
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--text);
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-  .btn:hover { background: var(--bg); }
-  .btn:active { transform: scale(0.98); }
-  .btn-primary { background: var(--text); color: var(--surface); border-color: var(--text); }
-  .btn-primary:hover { opacity: 0.85; background: var(--text); }
-  .btn-danger { color: var(--red); border-color: transparent; }
-  .btn-danger:hover { background: var(--red-light); }
-  .btn-icon { padding: 7px 10px; }
-  .btn:disabled { opacity: 0.35; cursor: not-allowed; }
-  .btn:disabled:hover { background: var(--surface); transform: none; }
-
-  .habit-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 11px 14px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    margin-bottom: 8px;
-  }
-  .habit-emoji { font-size: 20px; flex-shrink: 0; }
-  .habit-info { flex: 1; min-width: 0; }
-  .habit-name { font-weight: 500; font-size: 14px; }
-  .habit-badge {
-    display: inline-block;
-    font-size: 11px;
-    padding: 2px 8px;
-    border-radius: 20px;
-    background: var(--blue-light);
-    color: var(--blue);
-    margin-top: 3px;
-  }
-
-  .day-nav {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 20px;
-  }
-  .day-nav .day-title {
-    flex: 1;
-    text-align: center;
-    font-size: 16px;
-    font-weight: 600;
-  }
-  .track-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 13px 14px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-    margin-bottom: 8px;
-    transition: border-color 0.15s;
-  }
-  .track-emoji { font-size: 20px; flex-shrink: 0; }
-  .track-name { flex: 1; font-weight: 500; font-size: 14px; }
-  .track-control { flex-shrink: 0; }
-  .track-control input[type=text],
-  .track-control input[type=number],
-  .track-control input[type=time] {
-    width: 130px;
-    padding: 7px 10px;
-    font-size: 14px;
-  }
-  .duration-wrap { display: flex; align-items: center; gap: 6px; }
-  .duration-wrap input { width: 90px; }
-  .duration-wrap span { font-size: 12px; color: var(--muted); }
-
-  .check-box {
-    width: 30px;
-    height: 30px;
-    border: 1.5px solid var(--border2);
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    transition: all 0.15s;
-    background: var(--surface);
-    user-select: none;
-  }
-  .check-box.on { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
-
-  .save-row { margin-top: 16px; text-align: right; }
-
-  /* HISTORY */
-  .history-controls {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 16px;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
-  .history-period-label {
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--text);
-  }
-  .history-habit { margin-bottom: 20px; }
-  .history-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 10px;
-  }
-  .history-emoji { font-size: 18px; }
-  .history-name { font-weight: 500; font-size: 14px; }
-  .history-type { font-size: 12px; color: var(--muted); margin-left: auto; }
-  .dots-grid { display: flex; flex-wrap: wrap; gap: 5px; }
-  .dot {
-    width: 34px;
-    height: 34px;
-    border-radius: 7px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-size: 9px;
-    font-weight: 500;
-    border: 1px solid transparent;
-    cursor: default;
-    line-height: 1.2;
-  }
-  .dot-day { font-size: 8px; opacity: 0.65; }
-  .dot-val { font-size: 9px; font-weight: 600; }
-  .dot-empty { background: var(--bg); border-color: var(--border); color: var(--muted); }
-  .dot-green { background: var(--accent-light); border-color: #a8dbc4; color: var(--accent); }
-  .dot-red { background: var(--red-light); border-color: #f5bab5; color: var(--red); }
-  .dot-blue { background: var(--blue-light); border-color: #b5cff5; color: var(--blue); }
-
-  .empty {
-    text-align: center;
-    padding: 40px 20px;
-    color: var(--muted);
-    font-size: 14px;
-  }
-  .empty-icon { font-size: 36px; margin-bottom: 12px; }
-
-  .divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
-
-  .toast {
-    position: fixed;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%) translateY(60px);
-    background: var(--text);
-    color: var(--surface);
-    padding: 10px 20px;
-    border-radius: 20px;
-    font-size: 13px;
-    font-weight: 500;
-    transition: transform 0.25s ease;
-    z-index: 100;
-    pointer-events: none;
-  }
-  .toast.show { transform: translateX(-50%) translateY(0); }
-
-  @media (max-width: 480px) {
-    .form-grid { grid-template-columns: 1fr; }
-    .track-control input { width: 110px; }
-  }
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans);background:var(--color-background-tertiary);color:var(--color-text-primary);font-size:14px}
+.tabs{display:flex;background:var(--color-background-primary);border-bottom:0.5px solid var(--color-border-tertiary);padding:0 12px;position:sticky;top:0;z-index:10}
+.tab{padding:12px 16px;background:none;border:none;border-bottom:2px solid transparent;font-family:inherit;font-size:13px;font-weight:500;color:var(--color-text-secondary);cursor:pointer;transition:all .15s;white-space:nowrap}
+.tab.on{color:var(--color-text-primary);border-bottom-color:var(--color-text-primary)}
+.tab:hover:not(.on){color:var(--color-text-primary)}
+.page{display:none;padding:16px 14px 40px;max-width:680px;margin:0 auto}
+.page.on{display:block}
+.card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:14px;margin-bottom:12px}
+.lbl{font-size:11px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--color-text-secondary);margin-bottom:10px}
+.field{margin-bottom:10px}
+.field label{display:block;font-size:12px;color:var(--color-text-secondary);margin-bottom:4px}
+.fg{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);margin-bottom:7px}
+.em{font-size:18px;flex-shrink:0}
+.nm{flex:1;font-weight:500;font-size:14px}
+.bdg{display:inline-block;font-size:11px;padding:2px 7px;border-radius:20px;background:var(--color-background-info);color:var(--color-text-info);margin-top:3px}
+.del{background:none;border:none;cursor:pointer;color:var(--color-text-secondary);padding:4px 8px;border-radius:var(--border-radius-md);font-size:16px;transition:all .15s}
+.del:hover{background:var(--color-background-danger);color:var(--color-text-danger)}
+.nav{display:flex;align-items:center;gap:8px;margin-bottom:16px}
+.nav-title{flex:1;text-align:center;font-size:15px;font-weight:500}
+.cb{width:28px;height:28px;border:1.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;transition:all .15s;background:var(--color-background-primary);user-select:none;flex-shrink:0}
+.cb.on{background:var(--color-background-success);border-color:var(--color-border-success);color:var(--color-text-success)}
+.ctrl{flex-shrink:0}
+.ctrl input{width:120px;padding:6px 9px;font-size:13px}
+.dur{display:flex;align-items:center;gap:5px}
+.dur input{width:80px}
+.dur span{font-size:12px;color:var(--color-text-secondary)}
+.save-row{margin-top:14px;text-align:right}
+.hist-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:8px;flex-wrap:wrap}
+.hist-period{font-size:13px;font-weight:500}
+.dots{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.dot{width:32px;height:32px;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:9px;font-weight:500;border:0.5px solid transparent;line-height:1.2}
+.dot-e{background:var(--color-background-tertiary);border-color:var(--color-border-tertiary);color:var(--color-text-secondary)}
+.dot-g{background:var(--color-background-success);border-color:var(--color-border-success);color:var(--color-text-success)}
+.dot-r{background:var(--color-background-danger);border-color:var(--color-border-danger);color:var(--color-text-danger)}
+.dot-b{background:var(--color-background-info);border-color:var(--color-border-info);color:var(--color-text-info)}
+.dot-day{font-size:8px;opacity:.7}
+.dot-val{font-size:9px;font-weight:600}
+.empty{text-align:center;padding:32px 16px;color:var(--color-text-secondary);font-size:13px}
+.divider{border:none;border-top:0.5px solid var(--color-border-tertiary);margin:14px 0}
+.toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%) translateY(50px);background:var(--color-text-primary);color:var(--color-background-primary);padding:8px 18px;border-radius:20px;font-size:12px;font-weight:500;transition:transform .22s;z-index:100;pointer-events:none;opacity:0}
+.toast.on{transform:translateX(-50%) translateY(0);opacity:1}
 </style>
-</head>
-<body>
 
-<div class="tabs-bar">
-  <button class="tab-btn active" onclick="showPage('habits')">✦ Привычки</button>
-  <button class="tab-btn" onclick="showPage('today')">◎ Сегодня</button>
-  <button class="tab-btn" onclick="showPage('history')">◈ История</button>
+<div class="tabs">
+  <button class="tab on" onclick="go('habits')">Привычки</button>
+  <button class="tab" onclick="go('today')">Сегодня</button>
+  <button class="tab" onclick="go('history')">История</button>
 </div>
 
-<!-- HABITS PAGE -->
-<div id="page-habits" class="page active">
+<div id="pg-habits" class="page on">
   <div class="card">
-    <div class="section-label">Новая привычка</div>
-    <div class="field">
-      <label>Название</label>
-      <input type="text" id="new-name" placeholder="Например: проснуться, шаги, учёба...">
-    </div>
-    <div class="form-grid">
-      <div class="field">
-        <label>Тип отметки</label>
-        <select id="new-type">
-          <option value="checkbox">✓ Чекбокс (да / нет)</option>
-          <option value="time">⏰ Время (во сколько)</option>
-          <option value="number">🔢 Количество (число)</option>
-          <option value="duration">⏱ Продолжительность (мин)</option>
-          <option value="text">📝 Текст / заметка</option>
+    <div class="lbl">Новая привычка</div>
+    <div class="field"><label>Название</label><input id="nn" type="text" placeholder="Проснуться, шаги, учёба..."></div>
+    <div class="fg">
+      <div class="field"><label>Тип</label>
+        <select id="nt">
+          <option value="checkbox">Чекбокс (да/нет)</option>
+          <option value="time">Время (во сколько)</option>
+          <option value="number">Количество (число)</option>
+          <option value="duration">Длительность (мин)</option>
+          <option value="text">Текст / заметка</option>
         </select>
       </div>
-      <div class="field">
-        <label>Эмодзи</label>
-        <input type="text" id="new-emoji" placeholder="🌅 💪 📚 🪥 💧">
-      </div>
+      <div class="field"><label>Эмодзи</label><input id="ne" type="text" placeholder="🌅 💪 📚"></div>
     </div>
-    <button class="btn btn-primary" onclick="addHabit()">+ Добавить</button>
+    <button class="btn" onclick="addHabit()" style="margin-top:2px">+ Добавить</button>
   </div>
-
-  <hr class="divider">
-  <div class="section-label">Мои привычки</div>
+  <div class="divider"></div>
+  <div class="lbl">Мои привычки</div>
   <div id="habits-list"></div>
 </div>
 
-<!-- TODAY PAGE -->
-<div id="page-today" class="page">
-  <div class="day-nav">
-    <button class="btn btn-icon" onclick="changeDay(-1)">←</button>
-    <div class="day-title" id="day-title"></div>
-    <button class="btn btn-icon" id="btn-next" onclick="changeDay(1)">→</button>
+<div id="pg-today" class="page">
+  <div class="nav">
+    <button class="btn" onclick="chDay(-1)">←</button>
+    <div class="nav-title" id="day-title"></div>
+    <button class="btn" id="btn-fwd" onclick="chDay(1)">→</button>
   </div>
   <div id="track-list"></div>
-  <div class="save-row">
-    <button class="btn btn-primary" onclick="saveDay()">Сохранить</button>
-  </div>
+  <div class="save-row"><button class="btn" onclick="saveDay()" style="background:var(--color-text-primary);color:var(--color-background-primary);border-color:var(--color-text-primary)">Сохранить</button></div>
 </div>
 
-<!-- HISTORY PAGE -->
-<div id="page-history" class="page">
-  <div class="history-controls">
-    <div class="history-period-label" id="history-period-label"></div>
+<div id="pg-history" class="page">
+  <div class="hist-hdr">
+    <div class="hist-period" id="hist-lbl"></div>
     <div style="display:flex;gap:6px">
-      <button class="btn btn-icon" id="hist-prev" onclick="changeHistoryPage(-1)">←</button>
-      <button class="btn btn-icon" id="hist-next" onclick="changeHistoryPage(1)">→</button>
+      <button class="btn" id="hprev" onclick="chHist(-1)">←</button>
+      <button class="btn" id="hnext" onclick="chHist(1)">→</button>
     </div>
   </div>
-  <div id="history-list"></div>
+  <div id="hist-list"></div>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script>
-  const KEY_HABITS = 'ht2_habits';
-  const KEY_LOGS   = 'ht2_logs';
+let habits=[], logs={}, curDay='', histOff=0;
 
-  let habits = load(KEY_HABITS, []);
-  let logs   = load(KEY_LOGS, {});
-  let currentDay = todayStr();
+function todayStr(){
+  const d=new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
 
-  // history pagination: offset in pages of 14 days (0 = most recent 14 days)
-  let historyPageOffset = 0;
+function shift(s,n){
+  const [y,m,d]=s.split('-').map(Number);
+  const dt=new Date(y,m-1,d);
+  dt.setDate(dt.getDate()+n);
+  return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');
+}
 
-  if (!habits.length) {
-    habits = [
-      { id: 'h1', name: 'Проснуться', type: 'time',     emoji: '🌅' },
-      { id: 'h2', name: 'Шаги',       type: 'number',   emoji: '👣' },
-      { id: 'h3', name: 'Учёба',      type: 'duration', emoji: '📚' },
-      { id: 'h4', name: 'Умыться',    type: 'checkbox', emoji: '🪥' },
+function fmtDay(s){
+  const [y,m,d]=s.split('-').map(Number);
+  const dt=new Date(y,m-1,d);
+  const t=todayStr(), yest=shift(t,-1);
+  const MO=['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+  const DA=['вс','пн','вт','ср','чт','пт','сб'];
+  if(s===t) return 'Сегодня, '+d+' '+MO[m-1];
+  if(s===yest) return 'Вчера, '+d+' '+MO[m-1];
+  return DA[dt.getDay()]+' '+d+' '+MO[m-1];
+}
+
+function tlbl(t){return{checkbox:'Чекбокс',time:'Время',number:'Количество',duration:'Длительность',text:'Текст'}[t]||t}
+function uid(){return 'h'+Date.now()+Math.random().toString(36).slice(2,6)}
+
+function showToast(msg){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.classList.add('on');
+  setTimeout(()=>el.classList.remove('on'),1800);
+}
+
+async function saveState(){
+  try{
+    await window.storage.set('habits',JSON.stringify(habits));
+    await window.storage.set('logs',JSON.stringify(logs));
+  }catch(e){}
+}
+
+async function loadState(){
+  try{
+    const h=await window.storage.get('habits');
+    const l=await window.storage.get('logs');
+    if(h) habits=JSON.parse(h.value);
+    if(l) logs=JSON.parse(l.value);
+  }catch(e){}
+  if(!habits.length){
+    habits=[
+      {id:'h1',name:'Проснуться',type:'time',emoji:'🌅'},
+      {id:'h2',name:'Шаги',type:'number',emoji:'👣'},
+      {id:'h3',name:'Учёба',type:'duration',emoji:'📚'},
+      {id:'h4',name:'Умыться',type:'checkbox',emoji:'🪥'},
     ];
-    persist();
+    await saveState();
   }
+}
 
-  // ── helpers ──────────────────────────────────────────────────
+function go(p){
+  ['habits','today','history'].forEach(x=>{
+    document.getElementById('pg-'+x).classList.toggle('on',x===p);
+  });
+  document.querySelectorAll('.tab').forEach((el,i)=>{
+    el.classList.toggle('on',['habits','today','history'][i]===p);
+  });
+  if(p==='today') renderToday();
+  if(p==='history'){histOff=0;renderHistory();}
+}
 
-  function load(key, def) {
-    try { return JSON.parse(localStorage.getItem(key)) || def; } catch { return def; }
-  }
-  function persist() {
-    localStorage.setItem(KEY_HABITS, JSON.stringify(habits));
-    localStorage.setItem(KEY_LOGS,   JSON.stringify(logs));
-  }
+function addHabit(){
+  const name=document.getElementById('nn').value.trim();
+  const type=document.getElementById('nt').value;
+  const emoji=document.getElementById('ne').value.trim()||'⭐';
+  if(!name){document.getElementById('nn').focus();return;}
+  habits.push({id:uid(),name,type,emoji});
+  document.getElementById('nn').value='';
+  document.getElementById('ne').value='';
+  saveState();
+  renderHabits();
+  showToast('Привычка добавлена');
+}
 
-  // Returns today as YYYY-MM-DD using LOCAL time (fixes timezone bug)
-  function todayStr() {
-    const d = new Date();
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const dd = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${dd}`;
-  }
-
-  // Shift a YYYY-MM-DD string by n days, staying in local time
-  function shiftDay(str, n) {
-    const [y, m, d] = str.split('-').map(Number);
-    const date = new Date(y, m - 1, d);
-    date.setDate(date.getDate() + n);
-    const ny = date.getFullYear();
-    const nm = String(date.getMonth() + 1).padStart(2, '0');
-    const nd = String(date.getDate()).padStart(2, '0');
-    return `${ny}-${nm}-${nd}`;
-  }
-
-  function formatDay(str) {
-    const [y, m, d] = str.split('-').map(Number);
-    const date = new Date(y, m - 1, d);
-    const t = todayStr();
-    const yest = shiftDay(t, -1);
-    const DAYS = ['вс','пн','вт','ср','чт','пт','сб'];
-    const MONTHS = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
-    if (str === t)    return 'Сегодня, '  + d + ' ' + MONTHS[m - 1];
-    if (str === yest) return 'Вчера, '    + d + ' ' + MONTHS[m - 1];
-    return DAYS[date.getDay()] + ' ' + d + ' ' + MONTHS[m - 1];
-  }
-
-  function typeLabel(t) {
-    return { checkbox:'Чекбокс', time:'Время', number:'Количество', duration:'Длительность', text:'Текст' }[t] || t;
-  }
-  function uid() { return 'h' + Date.now(); }
-  function toast(msg) {
-    const el = document.getElementById('toast');
-    el.textContent = msg;
-    el.classList.add('show');
-    setTimeout(() => el.classList.remove('show'), 1800);
-  }
-
-  // ── pages ────────────────────────────────────────────────────
-  function showPage(p) {
-    document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
-    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-    document.getElementById('page-' + p).classList.add('active');
-    const idx = ['habits','today','history'].indexOf(p);
-    document.querySelectorAll('.tab-btn')[idx].classList.add('active');
-    if (p === 'today')   renderToday();
-    if (p === 'history') renderHistory();
-  }
-
-  // ── HABITS ───────────────────────────────────────────────────
-  function addHabit() {
-    const name  = document.getElementById('new-name').value.trim();
-    const type  = document.getElementById('new-type').value;
-    const emoji = document.getElementById('new-emoji').value.trim() || '⭐';
-    if (!name) { document.getElementById('new-name').focus(); return; }
-    habits.push({ id: uid(), name, type, emoji });
-    document.getElementById('new-name').value  = '';
-    document.getElementById('new-emoji').value = '';
-    persist();
-    renderHabits();
-    toast('Привычка добавлена');
-  }
-
-  function removeHabit(id) {
-    habits = habits.filter(h => h.id !== id);
-    persist();
-    renderHabits();
-    renderToday();
-  }
-
-  function renderHabits() {
-    const el = document.getElementById('habits-list');
-    if (!habits.length) {
-      el.innerHTML = `<div class="empty"><div class="empty-icon">🌱</div>Добавь первую привычку выше</div>`;
-      return;
-    }
-    el.innerHTML = habits.map(h => `
-      <div class="habit-item">
-        <span class="habit-emoji">${h.emoji}</span>
-        <div class="habit-info">
-          <div class="habit-name">${h.name}</div>
-          <span class="habit-badge">${typeLabel(h.type)}</span>
-        </div>
-        <button class="btn btn-danger btn-icon" onclick="removeHabit('${h.id}')" title="Удалить">✕</button>
-      </div>
-    `).join('');
-  }
-
-  // ── TODAY ────────────────────────────────────────────────────
-  function changeDay(n) {
-    const next = shiftDay(currentDay, n);
-    if (next > todayStr()) return;  // can't go into future
-    currentDay = next;
-    renderToday();
-  }
-
-  function getLog(day) { return logs[day] || {}; }
-
-  function setVal(id, val) {
-    if (!logs[currentDay]) logs[currentDay] = {};
-    logs[currentDay][id] = val;
-    persist();
-  }
-
-  function toggleCheck(id) {
-    const cur = getLog(currentDay)[id];
-    setVal(id, !cur);
-    const el = document.getElementById('cb-' + id);
-    const on = logs[currentDay][id];
-    el.className = 'check-box' + (on ? ' on' : '');
-    el.textContent = on ? '✓' : '';
-  }
-
-  function renderToday() {
-    const t = todayStr();
-    document.getElementById('day-title').textContent = formatDay(currentDay);
-
-    // Enable/disable next button
-    const btnNext = document.getElementById('btn-next');
-    btnNext.disabled = (currentDay >= t);
-
-    const log = getLog(currentDay);
-    const el  = document.getElementById('track-list');
-    if (!habits.length) {
-      el.innerHTML = `<div class="empty"><div class="empty-icon">📋</div>Сначала добавь привычки</div>`;
-      return;
-    }
-    el.innerHTML = habits.map(h => {
-      const val = log[h.id];
-      let ctrl = '';
-      if (h.type === 'checkbox') {
-        const on = val === true;
-        ctrl = `<div class="check-box${on?' on':''}" id="cb-${h.id}" onclick="toggleCheck('${h.id}')">${on?'✓':''}</div>`;
-      } else if (h.type === 'time') {
-        ctrl = `<input type="time" value="${val||''}" onchange="setVal('${h.id}',this.value)">`;
-      } else if (h.type === 'number') {
-        ctrl = `<input type="number" placeholder="0" value="${val!==undefined?val:''}" min="0" oninput="setVal('${h.id}',parseFloat(this.value)||0)">`;
-      } else if (h.type === 'duration') {
-        ctrl = `<div class="duration-wrap"><input type="number" placeholder="0" min="0" value="${val!==undefined?val:''}" oninput="setVal('${h.id}',parseFloat(this.value)||0)"><span>мин</span></div>`;
-      } else if (h.type === 'text') {
-        ctrl = `<input type="text" placeholder="заметка" value="${val||''}" oninput="setVal('${h.id}',this.value)" style="width:150px">`;
-      }
-      return `
-        <div class="track-item">
-          <span class="track-emoji">${h.emoji}</span>
-          <span class="track-name">${h.name}</span>
-          <div class="track-control">${ctrl}</div>
-        </div>`;
-    }).join('');
-  }
-
-  function saveDay() {
-    persist();
-    toast('Сохранено ✓');
-  }
-
-  // ── HISTORY ──────────────────────────────────────────────────
-
-  // Get the 14-day window for current history page
-  // offset=0: last 14 days including today
-  // offset=1: days 15–28 ago, etc.
-  function getHistoryDays() {
-    const days = [];
-    const endOffset = historyPageOffset * 14;       // how many days ago the window ends
-    for (let i = 13; i >= 0; i--) {
-      days.push(shiftDay(todayStr(), -(endOffset + i)));
-    }
-    return days;
-  }
-
-  // Find the earliest day we have any log data
-  function earliestLogDay() {
-    const keys = Object.keys(logs).filter(k => /^\d{4}-\d{2}-\d{2}$/.test(k));
-    if (!keys.length) return todayStr();
-    return keys.sort()[0];
-  }
-
-  function changeHistoryPage(dir) {
-    const next = historyPageOffset + dir;
-    if (next < 0) return;
-    // Don't go further back than we have data
-    const days = [];
-    const endOffset = next * 14;
-    for (let i = 13; i >= 0; i--) days.push(shiftDay(todayStr(), -(endOffset + i)));
-    const earliest = earliestLogDay();
-    if (days[0] < earliest && next > historyPageOffset) {
-      // Already at the oldest page
-    }
-    historyPageOffset = next;
-    renderHistory();
-  }
-
-  function renderHistory() {
-    const days = getHistoryDays();
-    const MONTHS = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
-    const DAYS_RU = ['вс','пн','вт','ср','чт','пт','сб'];
-
-    // Update period label
-    const [sy, sm, sd] = days[0].split('-').map(Number);
-    const [ey, em, ed] = days[days.length-1].split('-').map(Number);
-    document.getElementById('history-period-label').textContent =
-      `${sd} ${MONTHS[sm-1]} — ${ed} ${MONTHS[em-1]} ${ey}`;
-
-    // Update nav buttons
-    document.getElementById('hist-next').disabled = historyPageOffset === 0;
-    // Disable prev if the oldest page has no data
-    const earliest = earliestLogDay();
-    const prevDays = [];
-    const nextOffset = historyPageOffset + 1;
-    for (let i = 13; i >= 0; i--) prevDays.push(shiftDay(todayStr(), -(nextOffset * 14 + i)));
-    document.getElementById('hist-prev').disabled = prevDays[prevDays.length - 1] < earliest;
-
-    const el = document.getElementById('history-list');
-    if (!habits.length) {
-      el.innerHTML = `<div class="empty"><div class="empty-icon">📊</div>Нет привычек для отображения</div>`;
-      return;
-    }
-
-    el.innerHTML = habits.map(h => {
-      const dots = days.map(day => {
-        const log = getLog(day);
-        const val = log[h.id];
-        const [dy, dm, dd] = day.split('-').map(Number);
-        const dateObj = new Date(dy, dm - 1, dd);
-        const lbl = dd + '<br><span class="dot-day">' + DAYS_RU[dateObj.getDay()] + '</span>';
-
-        if (h.type === 'checkbox') {
-          if (val === true) return `<div class="dot dot-green" title="${day}">✓<br>${lbl}</div>`;
-          const hasLog = logs[day] !== undefined;
-          if (hasLog || day < todayStr())
-            return `<div class="dot dot-red" title="${day}">✗<br>${lbl}</div>`;
-          return `<div class="dot dot-empty" title="${day}">${lbl}</div>`;
-        }
-
-        if (val === undefined || val === null || val === '') {
-          return `<div class="dot dot-empty" title="${day}">${lbl}</div>`;
-        }
-        if (h.type === 'number' || h.type === 'duration') {
-          const n = typeof val === 'number' ? val : parseFloat(val);
-          const disp = isNaN(n) ? '?' : (n >= 1000 ? Math.round(n/100)/10+'к' : n);
-          return `<div class="dot dot-blue" title="${day}: ${val}"><span class="dot-val">${disp}</span><br>${lbl}</div>`;
-        }
-        if (h.type === 'time') {
-          return `<div class="dot dot-blue" title="${day}: ${val}"><span class="dot-val" style="font-size:8px">${val}</span><br>${lbl}</div>`;
-        }
-        return `<div class="dot dot-green" title="${day}: ${val}">✓<br>${lbl}</div>`;
-      }).join('');
-
-      return `
-        <div class="history-habit">
-          <div class="history-header">
-            <span class="history-emoji">${h.emoji}</span>
-            <span class="history-name">${h.name}</span>
-            <span class="history-type">${typeLabel(h.type)}</span>
-          </div>
-          <div class="dots-grid">${dots}</div>
-        </div>`;
-    }).join('<hr class="divider">');
-  }
-
-  // ── INIT ─────────────────────────────────────────────────────
+function removeHabit(id){
+  habits=habits.filter(h=>h.id!==id);
+  saveState();
   renderHabits();
   renderToday();
+  showToast('Удалено');
+}
+
+function renderHabits(){
+  const el=document.getElementById('habits-list');
+  if(!habits.length){el.innerHTML='<div class="empty">Добавь первую привычку выше</div>';return;}
+  el.innerHTML=habits.map(h=>`
+    <div class="row">
+      <span class="em">${h.emoji}</span>
+      <div style="flex:1;min-width:0">
+        <div class="nm">${h.name}</div>
+        <span class="bdg">${tlbl(h.type)}</span>
+      </div>
+      <button class="del" onclick="removeHabit('${h.id}')" title="Удалить">✕</button>
+    </div>`).join('');
+}
+
+function chDay(n){
+  const next=shift(curDay,n);
+  if(next>todayStr()) return;
+  curDay=next;
+  renderToday();
+}
+
+function getLog(day){return logs[day]||{}}
+
+function setVal(id,val){
+  if(!logs[curDay]) logs[curDay]={};
+  logs[curDay][id]=val;
+  saveState();
+}
+
+function toggleCb(id){
+  const cur=getLog(curDay)[id];
+  setVal(id,!cur);
+  const el=document.getElementById('cb-'+id);
+  const on=!cur;
+  el.className='cb'+(on?' on':'');
+  el.textContent=on?'✓':'';
+}
+
+function renderToday(){
+  const t=todayStr();
+  document.getElementById('day-title').textContent=fmtDay(curDay);
+  const btn=document.getElementById('btn-fwd');
+  btn.disabled=(curDay>=t);
+  btn.style.opacity=(curDay>=t)?'0.35':'1';
+  btn.style.cursor=(curDay>=t)?'not-allowed':'pointer';
+
+  const log=getLog(curDay);
+  const el=document.getElementById('track-list');
+  if(!habits.length){el.innerHTML='<div class="empty">Сначала добавь привычки</div>';return;}
+  el.innerHTML=habits.map(h=>{
+    const val=log[h.id];
+    let ctrl='';
+    if(h.type==='checkbox'){
+      const on=val===true;
+      ctrl=`<div class="cb${on?' on':''}" id="cb-${h.id}" onclick="toggleCb('${h.id}')">${on?'✓':''}</div>`;
+    } else if(h.type==='time'){
+      ctrl=`<input type="time" value="${val||''}" onchange="setVal('${h.id}',this.value)">`;
+    } else if(h.type==='number'){
+      ctrl=`<input type="number" placeholder="0" value="${val!==undefined?val:''}" min="0" oninput="setVal('${h.id}',parseFloat(this.value)||0)">`;
+    } else if(h.type==='duration'){
+      ctrl=`<div class="dur"><input type="number" placeholder="0" min="0" value="${val!==undefined?val:''}" oninput="setVal('${h.id}',parseFloat(this.value)||0)"><span>мин</span></div>`;
+    } else if(h.type==='text'){
+      ctrl=`<input type="text" placeholder="заметка" value="${val||''}" oninput="setVal('${h.id}',this.value)" style="width:140px">`;
+    }
+    return `<div class="row"><span class="em">${h.emoji}</span><span class="nm">${h.name}</span><div class="ctrl">${ctrl}</div></div>`;
+  }).join('');
+}
+
+function saveDay(){saveState();showToast('Сохранено ✓');}
+
+function getHistDays(){
+  const days=[];
+  for(let i=13;i>=0;i--) days.push(shift(todayStr(),-(histOff*14+i)));
+  return days;
+}
+
+function chHist(dir){
+  const next=histOff+dir;
+  if(next<0) return;
+  histOff=next;
+  renderHistory();
+}
+
+function renderHistory(){
+  const days=getHistDays();
+  const MO=['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
+  const DA=['вс','пн','вт','ср','чт','пт','сб'];
+  const [,sm,sd]=days[0].split('-').map(Number);
+  const [ey,em,ed]=days[13].split('-').map(Number);
+  document.getElementById('hist-lbl').textContent=`${sd} ${MO[sm-1]} — ${ed} ${MO[em-1]} ${ey}`;
+  document.getElementById('hnext').disabled=histOff===0;
+  document.getElementById('hnext').style.opacity=histOff===0?'0.35':'1';
+
+  const el=document.getElementById('hist-list');
+  if(!habits.length){el.innerHTML='<div class="empty">Нет привычек</div>';return;}
+
+  const t=todayStr();
+  el.innerHTML=habits.map((h,hi)=>{
+    const dots=days.map(day=>{
+      const val=(logs[day]||{})[h.id];
+      const [,dm,dd]=day.split('-').map(Number);
+      const dt=new Date(...day.split('-').map((v,i)=>i===1?v-1:Number(v)));
+      const lbl=`${dd}<br><span class="dot-day">${DA[dt.getDay()]}</span>`;
+      if(h.type==='checkbox'){
+        if(val===true) return `<div class="dot dot-g" title="${day}">✓<br>${lbl}</div>`;
+        if(logs[day]!==undefined||day<t) return `<div class="dot dot-r" title="${day}">✗<br>${lbl}</div>`;
+        return `<div class="dot dot-e">${lbl}</div>`;
+      }
+      if(val===undefined||val===null||val==='') return `<div class="dot dot-e">${lbl}</div>`;
+      if(h.type==='number'||h.type==='duration'){
+        const n=parseFloat(val);
+        const disp=isNaN(n)?'?':(n>=1000?Math.round(n/100)/10+'к':n);
+        return `<div class="dot dot-b" title="${day}: ${val}"><span class="dot-val">${disp}</span><br>${lbl}</div>`;
+      }
+      if(h.type==='time') return `<div class="dot dot-b" title="${day}: ${val}"><span class="dot-val" style="font-size:7px">${val}</span><br>${lbl}</div>`;
+      return `<div class="dot dot-g" title="${day}: ${val}">✓<br>${lbl}</div>`;
+    }).join('');
+    return `${hi>0?'<div class="divider"></div>':''}
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <span style="font-size:16px">${h.emoji}</span>
+        <span style="font-weight:500;font-size:13px">${h.name}</span>
+        <span style="font-size:11px;color:var(--color-text-secondary);margin-left:auto">${tlbl(h.type)}</span>
+      </div>
+      <div class="dots">${dots}</div>`;
+  }).join('');
+}
+
+(async()=>{
+  await loadState();
+  curDay=todayStr();
+  renderHabits();
+  renderToday();
+})();
 </script>
-</body>
-</html>
