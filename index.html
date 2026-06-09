@@ -1,0 +1,68 @@
+<h2>Habit tracker</h2>
+
+<input id="habitName" placeholder="Новая привычка">
+<button onclick="addHabit()">Добавить</button>
+
+<h3>Сегодня</h3>
+<div id="list"></div>
+
+<script>
+let habits = JSON.parse(localStorage.getItem("habits") || "[]");
+
+function save() {
+  localStorage.setItem("habits", JSON.stringify(habits));
+}
+
+function addHabit() {
+  const input = document.getElementById("habitName");
+  const name = input.value.trim();
+
+  if (!name) return;
+
+  habits.push({
+    name: name,
+    done: false
+  });
+
+  input.value = "";
+  save();
+  render();
+}
+
+function toggleHabit(index) {
+  habits[index].done = !habits[index].done;
+  save();
+  render();
+}
+
+function deleteHabit(index) {
+  habits.splice(index, 1);
+  save();
+  render();
+}
+
+function render() {
+  const list = document.getElementById("list");
+
+  if (habits.length === 0) {
+    list.innerHTML = "<p>Пока нет привычек</p>";
+    return;
+  }
+
+  list.innerHTML = habits.map((habit, index) => `
+    <div style="margin: 10px 0;">
+      <input 
+        type="checkbox" 
+        ${habit.done ? "checked" : ""} 
+        onchange="toggleHabit(${index})"
+      >
+      <span style="${habit.done ? 'text-decoration: line-through;' : ''}">
+        ${habit.name}
+      </span>
+      <button onclick="deleteHabit(${index})">Удалить</button>
+    </div>
+  `).join("");
+}
+
+render();
+</script>
